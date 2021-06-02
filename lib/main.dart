@@ -46,6 +46,7 @@ class _FlashCardState extends State<FlashCard> {
   bool _hasSpeech;
   FlashCardResult _result = FlashCardResult.waiting;
   String _guess = "";
+  bool _isButtonEnabled = true;
 
   @override
   void initState() {
@@ -64,8 +65,6 @@ class _FlashCardState extends State<FlashCard> {
       _hasSpeech = hasSpeech;
       print("Has speech? " + (_hasSpeech ? "Yes" : "No"));
     });
-
-    speech.listen(onResult: onSpeechResult, listenFor: Duration(seconds: 2));
   }
 
   void errorListener(SpeechRecognitionError error) {
@@ -79,11 +78,38 @@ class _FlashCardState extends State<FlashCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-        children: [Text("5*2"), Text(_guess), Text(_result.toString())]);
+    TextButton speakButton = TextButton(
+      onPressed: _isButtonEnabled
+          ? () {
+              setState(() {
+                _isButtonEnabled = false;
+              });
+              startListening();
+            }
+          : null,
+      child: Text(_isButtonEnabled ? "Ready" : "Speak Now"),
+    );
+    return Column(children: [
+      Text("5 x 2"),
+      Text(_guess),
+      Text(_result.toString()),
+      speakButton
+    ]);
+  }
+
+  void startListening() async {
+    speech.listen(
+        onResult: onSpeechResult,
+        listenFor: Duration(seconds: 3),
+        pauseFor: Duration(seconds: 3),
+        cancelOnError: true,
+        partialResults: true);
+    await Future.delayed(Duration(seconds: 2)).then((value) => speech.stop());
   }
 
   void onSpeechResult(SpeechRecognitionResult result) {
+    print(
+        "Recognized words: ${result.recognizedWords}; final result: ${result.finalResult}");
     setState(() {
       int spokenNumber = int.tryParse(result.recognizedWords);
       _guess = (spokenNumber == null) ? "" : result.recognizedWords;
