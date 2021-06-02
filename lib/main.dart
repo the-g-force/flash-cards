@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -48,10 +50,14 @@ class _FlashCardState extends State<FlashCard> {
   String _guess = "";
   bool _isButtonEnabled = true;
 
+  int _leftOperand;
+  int _rightOperand;
+
   @override
   void initState() {
     super.initState();
     initSpeech();
+    _randomizeOperands();
   }
 
   void initSpeech() async {
@@ -78,23 +84,37 @@ class _FlashCardState extends State<FlashCard> {
 
   @override
   Widget build(BuildContext context) {
-    TextButton speakButton = TextButton(
-      onPressed: _isButtonEnabled
-          ? () {
-              setState(() {
-                _isButtonEnabled = false;
-              });
-              startListening();
-            }
-          : null,
-      child: Text(_isButtonEnabled ? "Ready" : "Speak Now"),
-    );
     return Column(children: [
-      Text("5 x 2"),
+      Text("$_leftOperand x $_rightOperand"),
       Text(_guess),
       Text(_result.toString()),
-      speakButton
+      ElevatedButton(
+        onPressed: _isButtonEnabled
+            ? () {
+                setState(() {
+                  _isButtonEnabled = false;
+                });
+                startListening();
+              }
+            : null,
+        child: Text(_isButtonEnabled ? "Ready" : "Speak Now"),
+      ),
+      Spacer(),
+      ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _isButtonEnabled = true;
+              _guess = "";
+              _randomizeOperands();
+            });
+          },
+          child: Text("Next Problem"))
     ]);
+  }
+
+  void _randomizeOperands() {
+    _leftOperand = Random().nextInt(10);
+    _rightOperand = Random().nextInt(10);
   }
 
   void startListening() async {
@@ -113,7 +133,8 @@ class _FlashCardState extends State<FlashCard> {
     setState(() {
       int spokenNumber = int.tryParse(result.recognizedWords);
       _guess = (spokenNumber == null) ? "" : result.recognizedWords;
-      _result = result.recognizedWords.contains("10")
+      int answer = _leftOperand * _rightOperand;
+      _result = result.recognizedWords.contains(answer.toString())
           ? FlashCardResult.correct
           : FlashCardResult.incorrect;
     });
